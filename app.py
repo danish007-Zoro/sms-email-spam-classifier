@@ -1,8 +1,19 @@
 import streamlit as st
 import pickle
-import string
-from nltk.corpus import stopwords
 import nltk
+import string
+
+for resource in ["punkt", "punkt_tab", "stopwords"]:
+    try:
+        nltk.data.find(
+            "tokenizers/" + resource
+            if resource != "stopwords"
+            else "corpora/" + resource
+        )
+    except LookupError:
+        nltk.download(resource)
+
+from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
 ps = PorterStemmer()
