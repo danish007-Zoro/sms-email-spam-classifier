@@ -12,15 +12,16 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, precision_score
 
-for resource in ["punkt", "punkt_tab", "stopwords"]:
-    try:
-        nltk.data.find(
-            "tokenizers/" + resource
-            if resource != "stopwords"
-            else "corpora/" + resource
-        )
-    except LookupError:
-        nltk.download(resource)
+
+# Download required NLTK resources
+nltk.download("punkt")
+nltk.download("punkt_tab")
+nltk.download("stopwords")
+
+
+# --------------------------------------------------
+# 1. Load and clean dataset
+# --------------------------------------------------
 
 df = pd.read_csv("spam.csv", encoding="latin-1")
 
@@ -39,11 +40,17 @@ df["target"] = encoder.fit_transform(df["target"])
 
 df = df.drop_duplicates(keep="first")
 
+
+# --------------------------------------------------
+# 2. Text preprocessing
+# --------------------------------------------------
+
 ps = PorterStemmer()
 
 
 def transform_text(text):
     text = text.lower()
+
     text = nltk.word_tokenize(text)
 
     y = []
@@ -73,13 +80,23 @@ def transform_text(text):
 
 df["transformed_text"] = df["text"].apply(transform_text)
 
+
+# --------------------------------------------------
+# 3. TF-IDF feature extraction
+# --------------------------------------------------
+
 tfidf = TfidfVectorizer(max_features=3000)
 
 X = tfidf.fit_transform(
     df["transformed_text"]
-)
+).toarray()
 
 y = df["target"].values
+
+
+# --------------------------------------------------
+# 4. Train/test split
+# --------------------------------------------------
 
 X_train, X_test, y_train, y_test = train_test_split(
     X,
@@ -88,8 +105,19 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=2
 )
 
+
+# --------------------------------------------------
+# 5. Train Multinomial Naive Bayes
+# --------------------------------------------------
+
 mnb = MultinomialNB()
+
 mnb.fit(X_train, y_train)
+
+
+# --------------------------------------------------
+# 6. Evaluate
+# --------------------------------------------------
 
 y_pred = mnb.predict(X_test)
 
@@ -99,10 +127,18 @@ precision = precision_score(y_test, y_pred)
 print(f"Accuracy:  {accuracy:.4f}")
 print(f"Precision: {precision:.4f}")
 
+
+# --------------------------------------------------
+# 7. Save fitted artifacts
+# --------------------------------------------------
+
 with open("vectorizer.pkl", "wb") as f:
     pickle.dump(tfidf, f)
 
 with open("model.pkl", "wb") as f:
     pickle.dump(mnb, f)
 
-print("\nSuccessfully regenerated model.pkl and vectorizer.pkl")
+
+print("\nSuccessfully regenerated:")
+print("  vectorizer.pkl")
+print("  model.pkl")
